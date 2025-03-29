@@ -236,7 +236,7 @@ function SimpleVaultFactoryDialog({ open, onOpenChange, factoryAddress }: Simple
         onOpenChange(isOpen)
       }
     }}>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent  className="sm:max-w-[425px] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Deploy SimpleVault via Factory</DialogTitle>
           <DialogDescription>
@@ -307,8 +307,17 @@ function SimpleVaultFactoryDialog({ open, onOpenChange, factoryAddress }: Simple
                 </Button>
               </div>
             )}
+            
           </div>
         )}
+        <div className="mt-4 text-sm text-muted-foreground">
+            <p>
+              By deploying this contract, you agree to our 
+              <br />
+              <a href="/privacy" target="_blank" className="text-blue-500 underline"> Privacy Policy</a> and 
+              <a href="/terms" target="_blank" className="text-blue-500 underline"> Terms and Conditions</a>.
+            </p>
+          </div>
       </DialogContent>
     </Dialog>
   )
