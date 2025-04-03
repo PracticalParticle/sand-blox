@@ -1,0 +1,37 @@
+{
+  "id": "simple-rwa20",
+  "name": "Simple RWA20",
+  "description": "A secure ERC20 token contract for real-world assets with enhanced security features and controlled minting/burning operations.",
+  "category": "Tokens",
+  "securityLevel": "Basic",
+  "features": [
+    "ERC20 compliant token for real-world assets",
+    "Secure minting and burning through meta-transactions",
+    "Role-based access control (owner, broadcaster, recovery)",
+    "Pausable token transfers for emergency situations",
+    "Guardian account abstraction for enhanced security"
+  ],
+  "requirements": [
+    "Ethereum wallet",
+    "ETH for gas fees",
+    "Broadcaster account for meta-transactions"
+  ],
+  "deployments": {
+    "11155111": {
+      "name": "Sepolia",
+      "factory": ""
+    },
+    "1337": {
+      "name": "Particle-DevNet",
+      "factory": ""
+    }
+  },
+  "deploymentCount": 1,
+  "lastUpdated": "2024-04-03",
+  "libraries": {
+    "MultiPhaseSecureOperation": {
+      "name": "MultiPhaseSecureOperation",
+      "description": "Library for implementing secure multi-phase operations with time-locks and meta-transactions"
+    }
+  }
+}
