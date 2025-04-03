@@ -322,7 +322,11 @@ function SimpleRWA20UIContent({
 
     setLoadingState(prev => ({ ...prev, mint: true }));
     try {
-      const tx = await token.mint(to, amount, { from: address });
+      const metaTx = await token.generateUnsignedMintMetaTx(to, amount, {
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour from now
+        maxGasPrice: BigInt(50000000000) // 50 gwei
+      });
+      const tx = await token.mintWithMetaTx(metaTx, { from: address });
       await tx.wait();
 
       addMessage?.({
@@ -351,7 +355,11 @@ function SimpleRWA20UIContent({
 
     setLoadingState(prev => ({ ...prev, burn: true }));
     try {
-      const tx = await token.burn(amount, { from: address });
+      const metaTx = await token.generateUnsignedBurnMetaTx(address, amount, {
+        deadline: BigInt(Math.floor(Date.now() / 1000) + 3600), // 1 hour from now
+        maxGasPrice: BigInt(50000000000) // 50 gwei
+      });
+      const tx = await token.burnWithMetaTx(metaTx, { from: address });
       await tx.wait();
 
       addMessage?.({
