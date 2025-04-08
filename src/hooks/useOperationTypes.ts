@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { usePublicClient, useWalletClient, useConfig } from 'wagmi'
+import { usePublicClient, useWalletClient, useConfig, useAccount } from 'wagmi'
 import { Address, Hex } from 'viem'
 import { SecureOwnable } from '../particle-core/sdk/typescript/SecureOwnable'
 
@@ -21,11 +21,12 @@ export function useOperationTypes(contractAddress?: Address) {
   const [loading, setLoading] = useState(true)
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
+  const { isConnected } = useAccount()
   const config = useConfig()
 
   useEffect(() => {
     const loadOperationTypes = async () => {
-      if (!contractAddress || !publicClient) {
+      if (!contractAddress || !walletClient || !isConnected || !publicClient) {
         setLoading(false)
         return
       }
@@ -50,8 +51,7 @@ export function useOperationTypes(contractAddress?: Address) {
 
         // If no cache or expired, load from contract
         setLoading(true)
-        const chainId = await publicClient.getChainId()
-        const chain = config.chains.find(c => c.id === chainId)
+        const chain = config.chains.find(c => c.id === walletClient.chain.id)
         if (!chain) throw new Error('Chain not found')
 
         const contract = new SecureOwnable(publicClient, walletClient, contractAddress, chain)
@@ -79,7 +79,7 @@ export function useOperationTypes(contractAddress?: Address) {
     }
 
     loadOperationTypes()
-  }, [contractAddress, publicClient, walletClient, config.chains])
+  }, [contractAddress, walletClient, isConnected, publicClient, config.chains])
 
   return {
     operationTypes,

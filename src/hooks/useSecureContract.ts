@@ -1,17 +1,32 @@
-import { usePublicClient, useWalletClient, useChainId, useConfig } from 'wagmi'
-import { Address, Hash } from 'viem'
+import { useWalletClient, useChainId, useConfig, useAccount, usePublicClient } from 'wagmi'
+import { Address, Hash, PublicClient } from 'viem'
 import { SecureContractInfo } from '../lib/types'
 import { CONTRACT_ERRORS } from '@/constants/contract'
 import { generateNewSecureOwnableManager } from '@/lib/utils'
 
 export function useSecureContract() {
-  const publicClient = usePublicClient()
-  const { data: walletClient } = useWalletClient()
   const chainId = useChainId()
+  const { data: walletClient, isLoading: isWalletLoading } = useWalletClient({
+    chainId
+  })
+  const { isConnected } = useAccount()
   const config = useConfig()
-  
+  const publicClient = usePublicClient()
 
   const validateAndLoadContract = async (address: Address): Promise<SecureContractInfo> => {
+    console.log('Wallet connection status:', isConnected);
+    console.log('Wallet client:', walletClient);
+
+    // First check if wallet client is still loading
+    if (isWalletLoading) {
+      throw new Error('Wallet client is initializing')
+    }
+
+    // Then check connection status and wallet client availability together
+    if (!isConnected || !walletClient) {
+      throw new Error('Please connect your wallet')
+    }
+
     if (!publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_CLIENT)
     }
@@ -25,7 +40,7 @@ export function useSecureContract() {
       // Get chain information
       const chain = config.chains.find(c => c.id === chainId);
       if (!chain) {
-        throw new Error(CONTRACT_ERRORS.NO_CLIENT)
+        throw new Error(CONTRACT_ERRORS.CHAIN_MISMATCH)
       }
 
       const manager = await generateNewSecureOwnableManager(publicClient, walletClient, address, chain);
@@ -38,7 +53,7 @@ export function useSecureContract() {
 
   // Ownership Management
   const transferOwnership = async (address: Address): Promise<Hash> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 
@@ -53,7 +68,7 @@ export function useSecureContract() {
 
   // Broadcaster Management
   const updateBroadcaster = async (address: Address, newBroadcaster: Address): Promise<Hash> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 
@@ -67,7 +82,7 @@ export function useSecureContract() {
   }
 
   const signBroadcasterUpdateApproval = async (address: Address, txId: number, storeTransaction: (txId: string, signedTx: string, metadata?: Record<string, unknown>) => void): Promise<string> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 
@@ -81,7 +96,7 @@ export function useSecureContract() {
   } 
 
   const signTransferOwnershipApproval = async (address: Address, txId: number, storeTransaction: (txId: string, signedTx: string, metadata?: Record<string, unknown>) => void): Promise<string> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 
@@ -95,7 +110,7 @@ export function useSecureContract() {
   }
 
   const signBroadcasterUpdateCancellation = async (address: Address, txId: number, storeTransaction: (txId: string, signedTx: string, metadata?: Record<string, unknown>) => void): Promise<string> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 
@@ -109,7 +124,7 @@ export function useSecureContract() {
   }
 
   const signTransferOwnershipCancellation = async (address: Address, txId: number, storeTransaction: (txId: string, signedTx: string, metadata?: Record<string, unknown>) => void): Promise<string> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 
@@ -128,7 +143,7 @@ export function useSecureContract() {
     txId: number, 
     operationType: 'ownership' | 'broadcaster'
   ): Promise<Hash> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 
@@ -150,7 +165,7 @@ export function useSecureContract() {
     txId: number, 
     operationType: 'ownership' | 'broadcaster'
   ): Promise<Hash> => {
-    if (!publicClient || !walletClient?.account) {
+    if (!walletClient?.account || !publicClient) {
       throw new Error(CONTRACT_ERRORS.NO_WALLET)
     }
 

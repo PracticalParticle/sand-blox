@@ -71,14 +71,7 @@ export default defineConfig(({ mode }) => {
       "wss://*.walletconnect.org",
       "https://*.walletconnect.com",
       "wss://*.walletconnect.com",
-      "https://explorer-api.walletconnect.com",
-      // Development endpoints
-      ...(isDev ? [
-        "http://127.0.0.1:*",
-        "ws://127.0.0.1:*",
-        "http://localhost:*",
-        "ws://localhost:*"
-      ] : [])
+      "https://explorer-api.walletconnect.com"
     ],
     'script-src': [
       "'self'",
@@ -90,7 +83,7 @@ export default defineConfig(({ mode }) => {
     'media-src': ["'self'", "blob:", "https:", "http:"]
   };
 
-  // Convert CSP object to string with semicolon delimiter
+  // Convert CSP object to string
   const cspString = Object.entries(baseCSP)
     .map(([key, values]) => `${key} ${values.join(' ')}`)
     .join('; ');
@@ -164,13 +157,6 @@ export default defineConfig(({ mode }) => {
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-      },
-      proxy: {
-        '/local-node': {
-          target: 'http://127.0.0.1:8545',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/local-node/, '')
-        }
       },
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin',
