@@ -1,16 +1,11 @@
-import { Address, createPublicClient, http, Abi } from 'viem';
-import { sepolia } from 'viem/chains';
+import { Address, PublicClient, Abi } from 'viem';
 import FACTORY_ABI from './SimpleVaultFactory.abi.json';
 
 export class SimpleVaultFactory {
-  private client;
+  private client: PublicClient;
 
-  constructor() {
-    // Initialize public client for Sepolia
-    this.client = createPublicClient({
-      chain: sepolia,
-      transport: http()
-    });
+  constructor(client: PublicClient) {
+    this.client = client;
   }
 
   /**
@@ -73,7 +68,11 @@ export class SimpleVaultFactory {
   private getFactoryAddress(): Address {
     // Import deployment addresses from blox.json
     const config = require('../SimpleVault.blox.json');
-    const networkId = sepolia.id;
+    const networkId = this.client.chain?.id;
+
+    if (!networkId) {
+      throw new Error('No chain connected');
+    }
 
     if (!config.deployments?.[networkId]?.factory) {
       throw new Error(`No factory deployment found for network ${networkId}`);

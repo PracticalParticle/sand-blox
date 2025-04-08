@@ -62,19 +62,10 @@ export default defineConfig(({ mode }) => {
     'default-src': [
       "'self'",
       `https://${GANACHE_ENDPOINT}`,
-      `https://*.${GANACHE_DOMAIN}`,
-      'https://sepolia.drpc.org'  // Add Sepolia DRPC
+      `https://*.${GANACHE_DOMAIN}`
     ],
     'connect-src': [
       "'self'",
-      // Add Sepolia DRPC endpoints
-      'https://sepolia.drpc.org',
-      'ws://sepolia.drpc.org:*',
-      // Ganache specific endpoints with full coverage
-      `https://${GANACHE_ENDPOINT}`,
-      `wss://${GANACHE_ENDPOINT}`,
-      `https://*.${GANACHE_DOMAIN}`,
-      `wss://*.${GANACHE_DOMAIN}`,
       // Development allowances
       ...(isDev ? [
         "*",  // Allow all connections in development
@@ -93,15 +84,7 @@ export default defineConfig(({ mode }) => {
         "ws://127.0.0.1:*",
         "http://localhost:*",
         "ws://localhost:*"
-      ] : []),
-      // Additional services
-      "https://*.merkle.io",
-      "https://*.infura.io",
-      "wss://*.infura.io",
-      "https://*.alchemyapi.io",
-      "wss://*.alchemyapi.io",
-      "https://eth-mainnet.g.alchemy.com",
-      "https://polygon-mainnet.g.alchemy.com"
+      ] : [])
     ],
     'script-src': [
       "'self'",
@@ -110,11 +93,7 @@ export default defineConfig(({ mode }) => {
     ],
     'style-src': ["'self'", "'unsafe-inline'", "https:", "http:"],
     'img-src': ["'self'", "data:", "https:", "http:", "blob:"],
-    'media-src': ["'self'", "blob:", "https:", "http:"],
-    'worker-src': ["'self'", "blob:"],
-    'frame-src': ["'self'", "https:", "http:"],
-    'object-src': ["'none'"],
-    'base-uri': ["'self'"]
+    'media-src': ["'self'", "blob:", "https:", "http:"]
   };
 
   // Convert CSP object to string with semicolon delimiter
