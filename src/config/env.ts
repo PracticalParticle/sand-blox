@@ -11,7 +11,6 @@ const envSchema = z.object({
   VITE_WALLET_CONNECT_PROJECT_ID: z.string(),
 
   // Network Configuration
-  VITE_DEVNET_RPC_URL: z.string().url(),
   VITE_DEVNET_CHAIN_ID: z.number(),
   VITE_DEVNET_NAME: z.string(),
   VITE_DEVNET_EXPLORER_URL: z.string().optional(),
@@ -36,7 +35,6 @@ function parseEnvVariables(): EnvConfig {
   })
 
   console.log('Network config:', {
-    VITE_DEVNET_RPC_URL: import.meta.env.VITE_DEVNET_RPC_URL,
     VITE_DEVNET_CHAIN_ID: import.meta.env.VITE_DEVNET_CHAIN_ID,
     VITE_DEVNET_NAME: import.meta.env.VITE_DEVNET_NAME,
   })
@@ -48,7 +46,6 @@ function parseEnvVariables(): EnvConfig {
     VITE_WALLET_CONNECT_PROJECT_ID: import.meta.env.VITE_WALLET_CONNECT_PROJECT_ID,
     
     // Network Configuration
-    VITE_DEVNET_RPC_URL: import.meta.env.VITE_DEVNET_RPC_URL,
     VITE_DEVNET_CHAIN_ID: Number(import.meta.env.VITE_DEVNET_CHAIN_ID),
     VITE_DEVNET_NAME: import.meta.env.VITE_DEVNET_NAME,
     VITE_DEVNET_EXPLORER_URL: import.meta.env.VITE_DEVNET_EXPLORER_URL,
@@ -70,7 +67,6 @@ export const networks = {
   devnet: {
     id: env.VITE_DEVNET_CHAIN_ID,
     name: env.VITE_DEVNET_NAME,
-    rpcUrl: env.VITE_DEVNET_RPC_URL,
     explorerUrl: env.VITE_DEVNET_EXPLORER_URL,
   }
 } as const

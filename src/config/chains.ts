@@ -10,12 +10,8 @@ export const devnet = {
     symbol: 'ETH',
   },
   rpcUrls: {
-    default: {
-      http: [env.VITE_DEVNET_RPC_URL],
-    },
-    public: {
-      http: [env.VITE_DEVNET_RPC_URL],
-    },
+    default: { http: [] },
+    public: { http: [] }
   },
   blockExplorers: env.VITE_DEVNET_EXPLORER_URL ? {
     default: { name: env.VITE_DEVNET_NAME, url: env.VITE_DEVNET_EXPLORER_URL },
