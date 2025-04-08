@@ -54,15 +54,9 @@ function markdownPlugin(): Plugin {
 export default defineConfig(({ mode }) => {
   const isDev = mode === 'development';
   
-  // Define your Ganache endpoint
-  const GANACHE_ENDPOINT = 'remote-ganache-1.tailb0865.ts.net';
-  const GANACHE_DOMAIN = GANACHE_ENDPOINT.split('.').slice(1).join('.');
-  
   const baseCSP = {
     'default-src': [
-      "'self'",
-      `https://${GANACHE_ENDPOINT}`,
-      `https://*.${GANACHE_DOMAIN}`
+      "'self'"
     ],
     'connect-src': [
       "'self'",
@@ -176,13 +170,7 @@ export default defineConfig(({ mode }) => {
           target: 'http://127.0.0.1:8545',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/local-node/, '')
-        },
-        '/remote-ganache': {
-          target: `https://${GANACHE_ENDPOINT}`,
-          changeOrigin: true,
-          secure: true,
-          ws: true
-        },
+        }
       },
       headers: {
         'Cross-Origin-Opener-Policy': 'same-origin',
