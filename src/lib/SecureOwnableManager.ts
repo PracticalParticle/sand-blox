@@ -1,4 +1,4 @@
-import { Address, Chain, Hash, Hex, PublicClient, WalletClient } from 'viem';
+import { Address, Chain, Hash, Hex, PublicClient, WalletClient, createPublicClient, custom, EIP1193Provider } from 'viem';
 import { TxRecord } from '../particle-core/sdk/typescript/interfaces/lib.index';
 import { FUNCTION_SELECTORS, OPERATION_TYPES } from '../particle-core/sdk/typescript/types/core.access.index';
 import { TransactionResult } from '../particle-core/sdk/typescript/interfaces/base.index';
@@ -14,6 +14,12 @@ import { getChainName } from './utils';
 import SecureOwnable from '../particle-core/sdk/typescript/SecureOwnable';
 import { TxStatus } from '../particle-core/sdk/typescript/types/lib.index';
 
+declare global {
+  interface Window {
+    ethereum?: EIP1193Provider;
+  }
+}
+
 export class SecureOwnableManager {
   private contract: SecureOwnable;
   private publicClient: PublicClient;
@@ -22,7 +28,7 @@ export class SecureOwnableManager {
   private address: Address;
   private storeTransaction?: (txId: string, signedData: string, metadata: any) => void;
   private operationTypeMap: Map<string, string> | null = null;
-  private broadcaster: Address =  '0x'; // Initialized with an empty string
+  private broadcaster: Address = '0x' as Address; // Initialized with an empty address
 
   constructor(
     publicClient: PublicClient, 
@@ -31,12 +37,28 @@ export class SecureOwnableManager {
     chain: Chain,
     storeTransaction?: (txId: string, signedData: string, metadata: any) => void
   ) {
-    this.publicClient = publicClient;
+    // Always try to use window.ethereum if available
+    if (typeof window !== 'undefined' && window.ethereum) {
+      this.publicClient = createPublicClient({
+        chain,
+        transport: custom(window.ethereum)
+      });
+    } else {
+      this.publicClient = publicClient;
+    }
+
     this.walletClient = walletClient;
     this.chain = chain;
     this.address = address;
-    this.contract = new SecureOwnable(publicClient, walletClient, address, chain);
     this.storeTransaction = storeTransaction;
+    
+    // Initialize SecureOwnable with the new config interface
+    this.contract = new SecureOwnable({
+      publicClient: this.publicClient,
+      walletClient: this.walletClient,
+      contractAddress: this.address,
+      chain: this.chain
+    });
   }
 
   async init() {

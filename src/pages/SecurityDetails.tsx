@@ -186,12 +186,12 @@ export function SecurityDetails() {
       }
 
       // Create contract instance to get operation types
-      const contract = new SecureOwnable(
+      const contract = new SecureOwnable({
         publicClient,
-        undefined, // We don't need walletClient for read operations
-        contractAddress as `0x${string}`,
-        chain
-      );
+        contractAddress: contractAddress as `0x${string}`,
+        chain,
+        useWalletAsProvider: true
+      });
 
       // Get supported operation types
       const supportedTypes = await contract.getSupportedOperationTypes();
@@ -375,12 +375,13 @@ export function SecurityDetails() {
       }
 
       // Create contract instance
-      const contract = new SecureOwnable(
+      const contract = new SecureOwnable({
         publicClient,
         walletClient,
-        contractAddress as `0x${string}`,
-        chain
-      );
+        contractAddress: contractAddress as `0x${string}`,
+        chain,
+        useWalletAsProvider: true
+      });
       if(contractInfo.recoveryAddress.toLowerCase() === connectedAddress.toLowerCase()) {
         const result = await contract.transferOwnershipCancellation(
           BigInt(txId),
@@ -473,12 +474,13 @@ export function SecurityDetails() {
       }
 
       // Create contract instance to get operation types
-      const contract = new SecureOwnable(
+      const contract = new SecureOwnable({
         publicClient,
         walletClient,
-        contractAddress as `0x${string}`,
-        chain
-      );
+        contractAddress: contractAddress as `0x${string}`,
+        chain,
+        useWalletAsProvider: true
+      });
 
       // Get supported operation types
       const supportedTypes = await contract.getSupportedOperationTypes();
@@ -891,12 +893,13 @@ export function SecurityDetails() {
       }
 
       // Create contract instance
-      const contract = new SecureOwnable(
+      const contract = new SecureOwnable({
         publicClient,
         walletClient,
-        contractAddress as `0x${string}`,
-        chain
-      );
+        contractAddress: contractAddress as `0x${string}`,
+        chain,
+        useWalletAsProvider: true
+      });
 
       // Execute the direct cancellation since we're the owner
       const result = await contract.updateBroadcasterCancellation(

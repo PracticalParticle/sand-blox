@@ -46,12 +46,13 @@ export function useRoleValidation(
 
       try {
         // Create SecureOwnable instance
-        const contract = new SecureOwnable(
+        const contract = new SecureOwnable({
           publicClient,
           walletClient,
           contractAddress,
-          chain
-        );
+          chain,
+          useWalletAsProvider: true
+        });
 
         // Get role addresses
         const [ownerAddress, broadcasterAddress, recoveryAddress] = await Promise.all([

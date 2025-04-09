@@ -54,7 +54,13 @@ export function useOperationTypes(contractAddress?: Address) {
         const chain = config.chains.find(c => c.id === walletClient.chain.id)
         if (!chain) throw new Error('Chain not found')
 
-        const contract = new SecureOwnable(publicClient, walletClient, contractAddress, chain)
+        const contract = new SecureOwnable({
+          publicClient,
+          walletClient,
+          contractAddress,
+          chain,
+          useWalletAsProvider: true
+        })
         const types = await contract.getSupportedOperationTypes()
         
         // Create a map of operation type hex to name

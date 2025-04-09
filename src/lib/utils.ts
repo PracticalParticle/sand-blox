@@ -178,8 +178,14 @@ export async function generateNewSecureOwnableManager(
   address: Address,
   chain: ViemChain,
   storeTransaction?: (txId: string, signedData: string, metadata: any) => void
-): Promise<SecureOwnableManager> { // Fixed return type to Promise<SecureOwnableManager>
-  const manager = new SecureOwnableManager(publicClient, walletClient, address, chain, storeTransaction);
+): Promise<SecureOwnableManager> {
+  const manager = new SecureOwnableManager(
+    publicClient,
+    walletClient,
+    address,
+    chain,
+    storeTransaction
+  );
   await manager.init();
   return manager;
 }

@@ -49,8 +49,14 @@ export default class SimpleRWA20 extends SecureOwnable {
     contractAddress: Address,
     chain: Chain
   ) {
-    super(client, walletClient, contractAddress, chain);
-    this.validations = new ContractValidations(client);
+    super({
+      publicClient: client,
+      walletClient,
+      contractAddress,
+      chain,
+      useWalletAsProvider: false
+    });
+    this.validations = new ContractValidations(this.publicClient);
   }
 
   /**
@@ -58,7 +64,7 @@ export default class SimpleRWA20 extends SecureOwnable {
    * @return The name of the token
    */
   async getName(): Promise<string> {
-    const result = await this.client.readContract({
+    const result = await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'name'
@@ -71,7 +77,7 @@ export default class SimpleRWA20 extends SecureOwnable {
    * @return The symbol of the token
    */
   async getSymbol(): Promise<string> {
-    const result = await this.client.readContract({
+    const result = await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'symbol'
@@ -84,7 +90,7 @@ export default class SimpleRWA20 extends SecureOwnable {
    * @return The total supply
    */
   async getTotalSupply(): Promise<bigint> {
-    const result = await this.client.readContract({
+    const result = await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'totalSupply'
@@ -98,7 +104,7 @@ export default class SimpleRWA20 extends SecureOwnable {
    * @return The token balance
    */
   async getBalance(account: Address): Promise<bigint> {
-    const result = await this.client.readContract({
+    const result = await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'balanceOf',
@@ -112,7 +118,7 @@ export default class SimpleRWA20 extends SecureOwnable {
    * @return The number of decimals
    */
   async getDecimals(): Promise<number> {
-    const result = await this.client.readContract({
+    const result = await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'decimals'
@@ -127,7 +133,7 @@ export default class SimpleRWA20 extends SecureOwnable {
    * @return The token allowance
    */
   async getAllowance(owner: Address, spender: Address): Promise<bigint> {
-    const result = await this.client.readContract({
+    const result = await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'allowance',
@@ -162,7 +168,7 @@ export default class SimpleRWA20 extends SecureOwnable {
 
     return {
       hash,
-      wait: () => this.client.waitForTransactionReceipt({ hash })
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash })
     };
   }
 
@@ -197,7 +203,7 @@ export default class SimpleRWA20 extends SecureOwnable {
 
     return {
       hash,
-      wait: () => this.client.waitForTransactionReceipt({ hash })
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash })
     };
   }
 
@@ -239,7 +245,7 @@ export default class SimpleRWA20 extends SecureOwnable {
 
     return {
       hash,
-      wait: () => this.client.waitForTransactionReceipt({ hash })
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash })
     };
   }
 
@@ -266,7 +272,7 @@ export default class SimpleRWA20 extends SecureOwnable {
 
     return {
       hash,
-      wait: () => this.client.waitForTransactionReceipt({ hash })
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash })
     };
   }
 
@@ -293,7 +299,7 @@ export default class SimpleRWA20 extends SecureOwnable {
 
     return {
       hash,
-      wait: () => this.client.waitForTransactionReceipt({ hash })
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash })
     };
   }
 
@@ -325,7 +331,7 @@ export default class SimpleRWA20 extends SecureOwnable {
 
     return {
       hash,
-      wait: () => this.client.waitForTransactionReceipt({ hash })
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash })
     };
   }
 
@@ -357,7 +363,7 @@ export default class SimpleRWA20 extends SecureOwnable {
 
     return {
       hash,
-      wait: () => this.client.waitForTransactionReceipt({ hash })
+      wait: () => this.publicClient.waitForTransactionReceipt({ hash })
     };
   }
 
@@ -377,7 +383,7 @@ export default class SimpleRWA20 extends SecureOwnable {
       throw new Error("Amount must be greater than 0");
     }
 
-    return await this.client.readContract({
+    return await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'generateUnsignedMintMetaTx',
@@ -409,7 +415,7 @@ export default class SimpleRWA20 extends SecureOwnable {
       throw new Error("Insufficient balance for burn");
     }
 
-    return await this.client.readContract({
+    return await this.publicClient.readContract({
       address: this.contractAddress,
       abi: SimpleRWA20ABI,
       functionName: 'generateUnsignedBurnMetaTx',
@@ -517,6 +523,7 @@ export default class SimpleRWA20 extends SecureOwnable {
         } catch (error) {
           console.error("Error processing transaction:", error);
           // Continue with next transaction instead of failing the entire batch
+          continue;
         }
       }
       
