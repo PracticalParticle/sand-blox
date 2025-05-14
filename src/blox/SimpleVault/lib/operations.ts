@@ -7,6 +7,7 @@ import SimpleVault from '../SimpleVault';
 import { TxStatus } from '../../../particle-core/sdk/typescript/types/lib.index';
 import { SecureOwnable } from '../../../particle-core/sdk/typescript/SecureOwnable';
 import { VaultMetaTxParams } from '../SimpleVault';
+import { prepareAndSignMetaTransaction } from '../../../lib/MetaTxUtils';
 
 /**
  * Represents a transaction record with vault-specific details
@@ -223,9 +224,12 @@ export default class SimpleVaultOperationsHandler extends BaseBloxOperationsHand
       
       // Meta-transaction preparation helpers
       prepareMetaTxApprove: async (txId: bigint, options: TransactionOptions) => {
-        // This would be implemented to generate the signed meta-transaction
         if (!this.walletClient || !options.from) {
           throw new Error("Wallet client and sender address required");
+        }
+        
+        if (!this.contractAddress) {
+          throw new Error("Contract address is required");
         }
         
         const metaTxParams = {
@@ -238,19 +242,17 @@ export default class SimpleVaultOperationsHandler extends BaseBloxOperationsHand
           metaTxParams
         );
         
-        const messageHash = unsignedMetaTx.message;
-        const signature = await this.walletClient.signMessage({
-          message: { raw: messageHash as Hex },
-          account: options.from
-        });
-        
-        // Create the complete signed meta transaction
-        const signedMetaTx = {
-          ...unsignedMetaTx,
-          signature
-        };
-        
-        return JSON.stringify(signedMetaTx);
+        // Use centralized utility to sign the meta transaction with correct operation type
+        return await prepareAndSignMetaTransaction(
+          this.walletClient,
+          unsignedMetaTx,
+          this.contractAddress as Address,
+          options,
+          {
+            type: SimpleVaultOperationsHandler.WITHDRAW_ETH, // Use the correct operation type for ETH
+            action: 'approve'
+          }
+        );
       },
       
       prepareMetaTxCancel: async (txId: bigint, options: TransactionOptions) => {
@@ -316,9 +318,12 @@ export default class SimpleVaultOperationsHandler extends BaseBloxOperationsHand
       
       // Meta-transaction preparation helpers
       prepareMetaTxApprove: async (txId: bigint, options: TransactionOptions) => {
-        // This would be implemented to generate the signed meta-transaction
         if (!this.walletClient || !options.from) {
           throw new Error("Wallet client and sender address required");
+        }
+        
+        if (!this.contractAddress) {
+          throw new Error("Contract address is required");
         }
         
         const metaTxParams = {
@@ -331,19 +336,17 @@ export default class SimpleVaultOperationsHandler extends BaseBloxOperationsHand
           metaTxParams
         );
         
-        const messageHash = unsignedMetaTx.message;
-        const signature = await this.walletClient.signMessage({
-          message: { raw: messageHash as Hex },
-          account: options.from
-        });
-        
-        // Create the complete signed meta transaction
-        const signedMetaTx = {
-          ...unsignedMetaTx,
-          signature
-        };
-        
-        return JSON.stringify(signedMetaTx);
+        // Use centralized utility to sign the meta transaction with correct operation type
+        return await prepareAndSignMetaTransaction(
+          this.walletClient,
+          unsignedMetaTx,
+          this.contractAddress as Address,
+          options,
+          {
+            type: SimpleVaultOperationsHandler.WITHDRAW_TOKEN, // Use the correct operation type for tokens
+            action: 'approve'
+          }
+        );
       },
       
       prepareMetaTxCancel: async (txId: bigint, options: TransactionOptions) => {
@@ -424,45 +427,29 @@ export default class SimpleVaultOperationsHandler extends BaseBloxOperationsHand
         metaTxParams
       );
       
-      // Get the message hash and sign it
-      const messageHash = unsignedMetaTx.message;
-      const signature = await this.walletClient.signMessage({
-        message: { raw: messageHash as Hex },
-        account: this.walletClient.account.address
-      });
-
-      // Create the complete signed meta transaction
-      const signedMetaTx = {
-        ...unsignedMetaTx,
-        signature
-      };
-
-      // Convert BigInt values to strings recursively
-      const serializableMetaTx = JSON.parse(
-        JSON.stringify(signedMetaTx, (_, value) => 
-          typeof value === 'bigint' ? value.toString() : value
-        )
-      );
-
-      // Store the transaction if storeTransaction is provided
-      if (this.storeTransaction) {
-        // Get operation name for the transaction type
-        const operationName = this.getOperationName(tx);
-        
-        this.storeTransaction(
-          tx.txId.toString(),
-          JSON.stringify(serializableMetaTx),
-          {
-            type: operationName,
-            timestamp: Date.now(),
-            action: type,
-            broadcasted: false,
-            status: 'PENDING',
-            operationType: tx.params.operationType,
-            bloxId: this.bloxId
-          }
-        );
+      // Determine the operation type
+      const operationName = this.getOperationName(tx);
+      
+      // Validate that this is a valid withdrawal operation
+      if (operationName !== SimpleVaultOperationsHandler.WITHDRAW_ETH && 
+          operationName !== SimpleVaultOperationsHandler.WITHDRAW_TOKEN) {
+        throw new Error(`Invalid operation type: ${operationName}`);
       }
+      
+      // Use the centralized utility to sign the meta transaction
+      await prepareAndSignMetaTransaction(
+        this.walletClient,
+        unsignedMetaTx,
+        this.contractAddress as Address,
+        { from: this.walletClient.account.address },
+        {
+          type: operationName,
+          action: type,
+          operationType: tx.params.operationType,
+          bloxId: this.bloxId
+        },
+        this.storeTransaction
+      );
     } else {
       throw new Error("Meta-transaction cancellation not implemented");
     }

@@ -17,6 +17,7 @@ import {
 } from '../types/OperationRegistry';
 import { SecureContractInfo } from './types';
 import { OPERATION_TYPES, FUNCTION_SELECTORS } from '../particle-core/sdk/typescript/types/core.access.index';
+import { prepareAndSignMetaTransaction, bigIntReplacer } from './MetaTxUtils';
 
 /**
  * Maps human-readable operation types to contract-level hashes
@@ -315,36 +316,19 @@ export class WorkflowManager {
       metaTxParams
     );
 
-    // Get the message hash and sign it
-    const messageHash = unsignedMetaTx.message;
-    const signature = await this.walletClient.signMessage({
-      message: { raw: messageHash as Hex },
-      account: options.from
-    });
-
-    // Create the complete signed meta transaction
-    const signedMetaTx = {
-      ...unsignedMetaTx,
-      signature
-    };
-
-    // Store the transaction if storeTransaction is provided
-    if (this.storeTransaction) {
-      this.storeTransaction(
-        txId.toString(),
-        JSON.stringify(signedMetaTx, this.bigIntReplacer),
-        {
-          type: operation.name.replace(/\s+/g, '_').toUpperCase(),
-          operationType,
-          action: 'approve',
-          broadcasted: false,
-          timestamp: Date.now(),
-          status: 'PENDING'
-        }
-      );
-    }
-
-    return JSON.stringify(signedMetaTx, this.bigIntReplacer);
+    // Use the centralized utility to sign the meta transaction
+    return await prepareAndSignMetaTransaction(
+      this.walletClient,
+      unsignedMetaTx,
+      this.contractAddress,
+      options,
+      {
+        type: operation.name.replace(/\s+/g, '_').toUpperCase(),
+        operationType,
+        action: 'approve'
+      },
+      this.storeTransaction
+    );
   }
 
   /**
@@ -396,36 +380,19 @@ export class WorkflowManager {
       metaTxParams
     );
 
-    // Get the message hash and sign it
-    const messageHash = unsignedMetaTx.message;
-    const signature = await this.walletClient.signMessage({
-      message: { raw: messageHash as Hex },
-      account: options.from
-    });
-
-    // Create the complete signed meta transaction
-    const signedMetaTx = {
-      ...unsignedMetaTx,
-      signature
-    };
-
-    // Store the transaction if storeTransaction is provided
-    if (this.storeTransaction) {
-      this.storeTransaction(
-        txId.toString(),
-        JSON.stringify(signedMetaTx, this.bigIntReplacer),
-        {
-          type: operation.name.replace(/\s+/g, '_').toUpperCase(),
-          operationType,
-          action: 'cancel',
-          broadcasted: false,
-          timestamp: Date.now(),
-          status: 'PENDING'
-        }
-      );
-    }
-
-    return JSON.stringify(signedMetaTx, this.bigIntReplacer);
+    // Use the centralized utility to sign the meta transaction
+    return await prepareAndSignMetaTransaction(
+      this.walletClient,
+      unsignedMetaTx,
+      this.contractAddress,
+      options,
+      {
+        type: operation.name.replace(/\s+/g, '_').toUpperCase(),
+        operationType,
+        action: 'cancel'
+      },
+      this.storeTransaction
+    );
   }
 
   /**
@@ -538,7 +505,7 @@ export class WorkflowManager {
       throw new Error(`Account ${options.from} is not authorized to request this operation`);
     }
 
-    // Use the operation's prepareMetaTx method directly
+    // Use the operation's prepareMetaTx method directly if available
     if (isSinglePhaseOperation(operation) && operation.functions.prepareMetaTx) {
       return await operation.functions.prepareMetaTx(params, options);
     }
@@ -571,19 +538,18 @@ export class WorkflowManager {
       metaTxParams
     );
 
-    // Get the message hash and sign it
-    const messageHash = unsignedMetaTx.message;
-    const signature = await this.walletClient.signMessage({
-      message: { raw: messageHash as Hex },
-      account: options.from
-    });
-
-    // Create the complete signed meta transaction
-    const signedMetaTx = {
-      ...unsignedMetaTx,
-      signature
-    };
-
-    return JSON.stringify(signedMetaTx, this.bigIntReplacer);
+    // Use the centralized utility to sign the meta transaction
+    return await prepareAndSignMetaTransaction(
+      this.walletClient,
+      unsignedMetaTx,
+      this.contractAddress,
+      options,
+      {
+        type: operation.name.replace(/\s+/g, '_').toUpperCase(),
+        operationType,
+        action: 'requestAndApprove'
+      },
+      this.storeTransaction
+    );
   }
 }

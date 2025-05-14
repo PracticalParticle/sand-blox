@@ -13,6 +13,7 @@ import {
 import { getChainName } from './utils';
 import SecureOwnable from '../particle-core/sdk/typescript/SecureOwnable';
 import { TxStatus } from '../particle-core/sdk/typescript/types/lib.index';
+import { prepareAndSignMetaTransaction, bigIntReplacer, bigIntReviver } from './MetaTxUtils';
 
 export class SecureOwnableManager {
   private contract: SecureOwnable;
@@ -246,11 +247,13 @@ export class SecureOwnableManager {
     if (!this.walletClient) {
       throw new Error('Wallet client is required');
     }
- console.log('prepareAndSignRecoveryUpdate', newRecoveryAddress);
-  console.log('prepareAndSignRecoveryUpdate', options);
+    console.log('prepareAndSignRecoveryUpdate', newRecoveryAddress);
+    console.log('prepareAndSignRecoveryUpdate', options);
+    
     // Get execution options for recovery update
     const executionOptions = await this.contract.updateRecoveryExecutionOptions(newRecoveryAddress);
     console.log('executionOptions', executionOptions);
+    
     // Generate meta transaction parameters
     console.log('broadcaster', this.broadcaster);
     const metaTxParams = await this.contract.createMetaTxParams(
@@ -274,51 +277,24 @@ export class SecureOwnableManager {
       metaTxParams
     );
     console.log('unsignedMetaTx', unsignedMetaTx);
-    // Get the message hash and sign it
-    const messageHash = unsignedMetaTx.message;
-    console.log('messageHash', messageHash);
-    const signature = await this.walletClient.signMessage({
-      message: { raw: messageHash as Hex },
-      account: options.from
-    });
-    unsignedMetaTx.signature=signature as Hex;
-    // Create the complete signed meta transaction
-    const signedMetaTx = {
-      ...unsignedMetaTx,
-      signature: signature as Hex
-    };
-
-    // Store the transaction if storeTransaction is provided
-    if (this.storeTransaction) {
-      console.log('unsignedMetaTx before store', unsignedMetaTx);
-      this.storeTransaction(
-        '0', // txId 0 is used for single phase meta transactions
-        JSON.stringify(signedMetaTx, this.bigIntReplacer),
-        {
-          type: 'RECOVERY_UPDATE',
-          newRecoveryAddress,
-          timestamp: Date.now(),
-          status: 'PENDING'
-        }
-      );
-    }
+    
+    // Use the centralized utility to sign the meta transaction
+    const signedMetaTxJson = await prepareAndSignMetaTransaction(
+      this.walletClient,
+      unsignedMetaTx,
+      this.address,
+      options,
+      {
+        type: 'RECOVERY_UPDATE',
+        newRecoveryAddress
+      },
+      this.storeTransaction
+    );
+    
+    // Parse the JSON to get the signed meta transaction for logging
+    const signedMetaTx = JSON.parse(signedMetaTxJson, bigIntReviver);
+    console.log('signedMetaTx', signedMetaTx);
   }
-
-  bigIntReplacer(_key: string, value: any): any {
-    if (typeof value === "bigint") {
-      return value.toString() + 'n';
-    }
-    return value;
-  }
-  
-  bigIntReviver(_key: string, value: any): any {
-    if (typeof value === 'string' && /^\d+n$/.test(value)) {
-      return BigInt(value.slice(0, -1));
-    }
-    return value;
-  }
-
-  
 
   // Enhanced TimeLock Management
   async prepareAndSignTimeLockUpdate(
@@ -354,35 +330,24 @@ export class SecureOwnableManager {
       metaTxParams
     );
     console.log('unsignedMetaTx', unsignedMetaTx);
-    // Get the message hash and sign it
-    const messageHash = unsignedMetaTx.message;
-    console.log('messageHash', messageHash);
-    const signature = await this.walletClient.signMessage({
-      message: { raw: messageHash as Hex },
-      account: options.from
-    });
-    unsignedMetaTx.signature=signature as Hex;
-    // Create the complete signed meta transaction
-    const signedMetaTx = {
-      ...unsignedMetaTx,
-      signature: signature as Hex
-    };
-
-    // Store the transaction if storeTransaction is provided
-    if (this.storeTransaction) {
-      console.log('unsignedMetaTx before store', unsignedMetaTx);
-      this.storeTransaction(
-        '0', // txId 0 is used for single phase meta transactions
-        JSON.stringify(signedMetaTx, this.bigIntReplacer),
-        {
-          type: 'TIMELOCK_UPDATE',
-          broadcasted: false,
-          newTimeLockPeriod: Number(newPeriodInMinutes),
-          timestamp: Date.now(),
-          status: 'PENDING'
-        }
-      );
-    }
+    
+    // Use the centralized utility to sign the meta transaction
+    const signedMetaTxJson = await prepareAndSignMetaTransaction(
+      this.walletClient,
+      unsignedMetaTx,
+      this.address,
+      options,
+      {
+        type: 'TIMELOCK_UPDATE',
+        broadcasted: false,
+        newTimeLockPeriod: Number(newPeriodInMinutes)
+      },
+      this.storeTransaction
+    );
+    
+    // Parse the JSON to get the signed meta transaction for logging
+    const signedMetaTx = JSON.parse(signedMetaTxJson, bigIntReviver);
+    console.log('signedMetaTx', signedMetaTx);
   }
 
   /**
@@ -415,34 +380,18 @@ export class SecureOwnableManager {
         metaTxParams
       );
 
-      // Get the message hash and sign it
-      const messageHash = unsignedMetaTx.message;
-      const signature = await this.walletClient.signMessage({
-        message: { raw: messageHash as Hex },
-        account: options.from
-      });
-
-      // Create the complete signed meta transaction
-      const signedMetaTx = {
-        ...unsignedMetaTx,
-        signature
-      };
-
-      // Store the transaction if a store function is provided
-      if (this.storeTransaction) {
-        this.storeTransaction(
-          txId.toString(),
-          JSON.stringify(signedMetaTx, this.bigIntReplacer),
-          {
-            type: 'OWNERSHIP_TRANSFER',
-            broadcasted: false,
-            timestamp: Date.now(),
-            status: 'PENDING'
-          }
-        );
-      }
-
-      return JSON.stringify(signedMetaTx, this.bigIntReplacer);
+      // Use the centralized utility to sign the meta transaction
+      return await prepareAndSignMetaTransaction(
+        this.walletClient,
+        unsignedMetaTx,
+        this.address,
+        options,
+        {
+          type: 'OWNERSHIP_TRANSFER',
+          broadcasted: false
+        },
+        this.storeTransaction
+      );
     } catch (error) {
       console.error('Error preparing ownership approval meta transaction:', error);
       throw error;
@@ -479,34 +428,18 @@ export class SecureOwnableManager {
         metaTxParams
       );
 
-      // Get the message hash and sign it
-      const messageHash = unsignedMetaTx.message;
-      const signature = await this.walletClient.signMessage({
-        message: { raw: messageHash as Hex },
-        account: options.from
-      });
-
-      // Create the complete signed meta transaction
-      const signedMetaTx = {
-        ...unsignedMetaTx,
-        signature
-      };
-
-      // Store the transaction if a store function is provided
-      if (this.storeTransaction) {
-        this.storeTransaction(
-          txId.toString(),
-          JSON.stringify(signedMetaTx, this.bigIntReplacer),
-          {
-            type: 'OWNERSHIP_TRANSFER',
-            broadcasted: false,
-            timestamp: Date.now(),
-            status: 'PENDING'
-          }
-        );
-      }
-
-      return JSON.stringify(signedMetaTx, this.bigIntReplacer);
+      // Use the centralized utility to sign the meta transaction
+      return await prepareAndSignMetaTransaction(
+        this.walletClient,
+        unsignedMetaTx,
+        this.address,
+        options,
+        {
+          type: 'OWNERSHIP_TRANSFER',
+          broadcasted: false
+        },
+        this.storeTransaction
+      );
     } catch (error) {
       console.error('Error preparing ownership cancellation meta transaction:', error);
       throw error;
@@ -546,35 +479,19 @@ export class SecureOwnableManager {
       );
 
       console.log('unsignedMetaTx', unsignedMetaTx);
-      // Get the message hash and sign it
-      const messageHash = unsignedMetaTx.message;
-      const signature = await this.walletClient.signMessage({
-        message: { raw: messageHash as Hex },
-        account: options.from
-      });
-
-      // Create the complete signed meta transaction
-      const signedMetaTx = {
-        ...unsignedMetaTx,
-        signature
-      };
-
-      // Store the transaction if a store function is provided
-      console.log('storeTransaction', this.storeTransaction);
-      if (this.storeTransaction) {
-        this.storeTransaction(
-          txId.toString(),
-          JSON.stringify(signedMetaTx, this.bigIntReplacer),
-          {
-            type: 'BROADCASTER_UPDATE',
-            broadcasted: false,
-            timestamp: Date.now(),
-            status: 'PENDING'
-          }
-        );
-      }
-
-      return JSON.stringify(signedMetaTx, this.bigIntReplacer);
+      
+      // Use the centralized utility to sign the meta transaction
+      return await prepareAndSignMetaTransaction(
+        this.walletClient,
+        unsignedMetaTx,
+        this.address,
+        options,
+        {
+          type: 'BROADCASTER_UPDATE',
+          broadcasted: false
+        },
+        this.storeTransaction
+      );
     } catch (error) {
       console.error('Error preparing broadcaster approval meta transaction:', error);
       throw error;
@@ -611,33 +528,18 @@ export class SecureOwnableManager {
         metaTxParams
       );
 
-      // Get the message hash and sign it
-      const messageHash = unsignedMetaTx.message;
-      const signature = await this.walletClient.signMessage({
-        message: { raw: messageHash as Hex },
-        account: options.from
-      });
-
-      // Create the complete signed meta transaction
-      const signedMetaTx = {
-        ...unsignedMetaTx,
-        signature
-      };
-
-      // Store the transaction if a store function is provided
-      if (this.storeTransaction) {
-        this.storeTransaction(
-          txId.toString(),
-          JSON.stringify(signedMetaTx, this.bigIntReplacer),
-          {
-            type: 'BROADCASTER_UPDATE',
-            broadcasted: false,
-            status: 'PENDING'
-          }
-        );
-      }
-
-      return JSON.stringify(signedMetaTx, this.bigIntReplacer);
+      // Use the centralized utility to sign the meta transaction
+      return await prepareAndSignMetaTransaction(
+        this.walletClient,
+        unsignedMetaTx,
+        this.address,
+        options,
+        {
+          type: 'BROADCASTER_UPDATE',
+          broadcasted: false
+        },
+        this.storeTransaction
+      );
     } catch (error) {
       console.error('Error preparing broadcaster cancellation meta transaction:', error);
       throw error;
@@ -688,22 +590,6 @@ export class SecureOwnableManager {
         }
       } else if (type === 'RECOVERY_UPDATE') {
         console.log('signedMetaTx', signedMetaTx);
-        // const hashBytes = toBytes(signedMetaTx.message);
-        // // Sign the message hash using ethers
-        //     const signature = await wallet.signMessage(hashBytes);
-            
-        //     // Create a new array with the signature at index 2
-        //     const metaTxWithSignature = [
-        //         unsignedMetaTx[0],  // txRecord
-        //         unsignedMetaTx[1],  // params
-        //         unsignedMetaTx[2],
-        //         signature,  // signature without '0x' prefix
-        //         unsignedMetaTx[4]   // data
-        //     ];
-            
-        //     // Use the new array for the contract call
-        //     await vault.approveWithdrawalWithMetaTx(metaTxWithSignature, { from: accounts[2] });
-        // });
         result = await this.contract.updateRecoveryRequestAndApprove(
           signedMetaTx,
           options

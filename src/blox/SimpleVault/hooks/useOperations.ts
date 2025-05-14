@@ -9,6 +9,7 @@ import { NotificationMessage, VaultTxRecord } from '../lib/types';
 import { createVaultMetaTxParams } from '../lib/operations';
 import { SimpleVaultService } from '../lib/services';
 import SimpleVault from '../SimpleVault';
+import { prepareAndSignMetaTransaction } from '@/lib/MetaTxUtils';
 
 // Valid operation types for SimpleVault
 export const VAULT_OPERATIONS = {
@@ -205,7 +206,7 @@ export function useOperations({
 
   // META TRANSACTION FUNCTIONS
   // Sign a withdrawal approval meta transaction
-  const signWithdrawalApproval = useCallback(async (txId: string) => {
+  const signWithdrawalApproval = useCallback(async (txId: string, txType: "ETH" | "TOKEN") => {
     if (!walletClient || !vault || !address) {
       throw new Error('Wallet not connected or services not initialized');
     }
@@ -224,41 +225,51 @@ export function useOperations({
         metaTxParams
       );
 
-      // Sign the message hash
-      const messageHash = unsignedMetaTx.message;
-      const signature = await walletClient.signMessage({
-        message: { raw: messageHash as Hex },
-        account: address
-      });
+      // Map the transaction type to the correct operation type
+      const operationType = txType === "ETH" ? VAULT_OPERATIONS.WITHDRAW_ETH : VAULT_OPERATIONS.WITHDRAW_TOKEN;
 
-      // Return the signed meta transaction
-      return {
-        ...unsignedMetaTx,
-        signature: signature as Hex
-      };
+      // Use centralized utility to sign the meta transaction
+      const signedMetaTxJson = await prepareAndSignMetaTransaction(
+        walletClient,
+        unsignedMetaTx,
+        contractAddress,
+        { from: address },
+        {
+          type: operationType,
+          action: 'approve'
+        }
+        // Don't pass storeTransaction here, we'll handle storage separately
+      );
+
+      // Parse and return the signed meta transaction
+      return JSON.parse(signedMetaTxJson);
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to sign meta transaction');
     } finally {
       setLoadingStates(prev => ({ ...prev, metaTx: false }));
     }
-  }, [vault, vaultService, walletClient, address]);
+  }, [vault, vaultService, walletClient, address, contractAddress]);
 
   // Handle meta transaction signing
   const handleMetaTxSign = useCallback(async (tx: VaultTxRecord, type: 'approve' | 'cancel') => {
     try {
       if (type === 'approve') {
-        const signedTx = await signWithdrawalApproval(tx.txId.toString());
+        // Pass the transaction type (ETH or TOKEN) to signWithdrawalApproval
+        const signedTx = await signWithdrawalApproval(tx.txId.toString(), tx.type);
         
         // Convert BigInt values to strings for storage
         const serializedTx = convertBigIntsToStrings(signedTx);
         const txId = tx.txId.toString();
+
+        // Get the correct operation type based on the transaction type
+        const operationType = tx.type === "ETH" ? VAULT_OPERATIONS.WITHDRAW_ETH : VAULT_OPERATIONS.WITHDRAW_TOKEN;
 
         // Store the signed transaction
         storeTransaction(
           txId,
           JSON.stringify(serializedTx),
           {
-            type: 'WITHDRAWAL_APPROVAL',
+            type: operationType,
             timestamp: Date.now(),
             action: type,
             broadcasted: false,
@@ -282,7 +293,7 @@ export function useOperations({
         onSuccess?.({
           type: 'success',
           title: 'Meta Transaction Signed',
-          description: `Successfully signed approval for transaction #${txId}`
+          description: `Successfully signed approval for ${tx.type} withdrawal #${txId}`
         });
       } else {
         throw new Error('Meta transaction cancellation not implemented');
