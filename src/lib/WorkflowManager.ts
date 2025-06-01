@@ -510,8 +510,12 @@ export class WorkflowManager {
       return await operation.functions.prepareMetaTx(params, options);
     }
 
-    // Get execution options for the operation
-    const executionOptions = await operation.functions.getExecutionOptions(params);
+    // Get execution options for the operation or use default '0x' if not provided
+    // Some operations (like SimpleRWA20) handle execution options in their smart contracts
+    // and don't need to construct them at the SDK level, so we use a default empty value
+    const executionOptions = operation.functions.getExecutionOptions 
+      ? await operation.functions.getExecutionOptions(params) 
+      : '0x' as `0x${string}`;
 
     // Get the function selector
     let functionSelector: Hex;

@@ -236,6 +236,5 @@ export async function loadBloxComponentModule(bloxId: string, componentName: str
     throw error;
   }
 }
-
 // Export additional utilities
 export { contractFolderMap }

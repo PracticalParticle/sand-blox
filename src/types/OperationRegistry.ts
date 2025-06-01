@@ -61,7 +61,10 @@ export interface MultiPhaseOperationFunctions {
  */
 export interface SinglePhaseOperationFunctions {
   // Get execution options for preparing meta-transaction
-  getExecutionOptions: (params: any) => Promise<Hex>;
+  // This is optional because some implementations may handle execution options creation 
+  // directly in their smart contracts (e.g., SimpleRWA20) while others need to
+  // construct them at the SDK level (e.g., RecoveryUpdate, TimeLockUpdate)
+  getExecutionOptions?: (params: any) => Promise<Hex>;
   
   // Combined request and approval with meta-transaction
   requestAndApproveWithMetaTx: (metaTx: MetaTransaction, options: TransactionOptions) => Promise<TransactionResult>;

@@ -1,6 +1,6 @@
-import { Address } from 'viem';
+import { Address, Hex } from 'viem';
 import { TxStatus } from '../../../particle-core/sdk/typescript/types/lib.index';
-import { TxRecord } from '../../../particle-core/sdk/typescript/interfaces/lib.index';
+import { TxRecord, TxParams } from '../../../particle-core/sdk/typescript/interfaces/lib.index';
 
 export interface NotificationMessage {
   type: 'error' | 'warning' | 'info' | 'success';
@@ -19,12 +19,15 @@ export interface VaultMetaTxParams {
 /**
  * Represents a transaction record with vault-specific details
  */
-export interface VaultTxRecord extends Omit<TxRecord, 'status'> {
+export interface VaultTxRecord extends Omit<TxRecord, 'status' | 'params'> {
   status: TxStatus;
   amount: bigint;
   to: Address;
   token?: Address;
   type: "ETH" | "TOKEN";
+  params: TxParams & {
+    operationType: Hex;
+  };
 }
 
 /**

@@ -18,7 +18,8 @@ export interface BloxOperationsHandler {
     contractAddress: Address, 
     publicClient: PublicClient, 
     walletClient?: WalletClient,
-    chain?: Chain
+    chain?: Chain,
+    storeTransaction?: (txId: string, signedData: string, metadata?: Record<string, any>) => void
   ): void;
   
   // Check if this handler can handle a given contract type
@@ -26,65 +27,58 @@ export interface BloxOperationsHandler {
 }
 
 /**
- * Convert kebab-case to PascalCase
+ * Load operations handler for a specific blox by ID
+ * @param bloxId The ID of the blox to load operations for
+ * @returns Promise resolving to the operations handler or null if not found
  */
-function toPascalCase(str: string): string {
-  return str
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join('');
-}
-
-/**
- * Load operations handler for a specific Blox type by ID
- * @param bloxId The ID of the Blox to load
- * @returns Promise resolving to the loaded handler or undefined if not found
- */
-export async function loadBloxOperationsByBloxId(bloxId: string): Promise<BaseBloxOperationsHandler | undefined> {
+export async function loadBloxOperationsByBloxId(bloxId: string): Promise<BaseBloxOperationsHandler | null> {
   try {
-    // Check if we already have this handler loaded
-    if (bloxOperationsRegistry.has(bloxId)) {
-      return bloxOperationsRegistry.get(bloxId);
+    // Check if we already have a handler for this blox
+    const existingHandler = bloxOperationsRegistry.get(bloxId);
+    if (existingHandler) {
+      return existingHandler;
     }
-    
-    // Otherwise, load the catalog to verify this bloxId exists
+
+    // Check if this blox exists in the catalog
     const catalog = await loadCatalog();
-    
-    // Verify bloxId exists in catalog
-    if (!catalog[bloxId]) {
+    const bloxDetails = catalog[bloxId];
+    if (!bloxDetails) {
       console.warn(`Blox ID ${bloxId} not found in catalog`);
-      return undefined;
+      return null;
     }
     
     // Skip template and test bloxes
     if (bloxId.toLowerCase().includes('template') || bloxId.toLowerCase().includes('test')) {
       console.log(`Skipping operations for template/test Blox: ${bloxId}`);
-      return undefined;
+      return null;
     }
-    
-    // Convert bloxId to PascalCase for directory structure
-    const pascalCaseBloxId = toPascalCase(bloxId);
-    
-    try {
-      // Try to dynamically import the operations file for this Blox
-      const operationsModule = await import(`../blox/${pascalCaseBloxId}/lib/operations.ts`);
-      
-      if (operationsModule.default) {
-        const handler = new operationsModule.default() as BaseBloxOperationsHandler;
-        bloxOperationsRegistry.set(bloxId, handler);
-        console.log(`Registered operations handler for Blox: ${bloxId}`);
-        return handler;
-      } else {
-        console.warn(`No operations handler class found for Blox ${bloxId}`);
-        return undefined;
-      }
-    } catch (error) {
-      console.warn(`No operations file found for Blox ${bloxId}`, error);
-      return undefined;
+
+    // Get the folder name from the catalog
+    const folderName = bloxDetails.files.component.split('/').slice(-2)[0];
+    if (!folderName) {
+      console.warn(`Could not determine folder name for blox: ${bloxId}`);
+      return null;
     }
+
+    // Load the operations module using the folder name
+    const operationsModule = await import(`@/blox/${folderName}/lib/operations.ts`);
+    
+    if (!operationsModule?.default) {
+      console.warn(`No operations handler found for blox: ${bloxId}`);
+      return null;
+    }
+
+    // Instantiate the handler class
+    const handler = new operationsModule.default();
+    
+    // Register the handler in the registry
+    bloxOperationsRegistry.set(bloxId, handler);
+    console.log(`Registered operations handler for Blox: ${bloxId}`);
+    
+    return handler;
   } catch (error) {
-    console.error(`Failed to load operations for Blox ${bloxId}:`, error);
-    return undefined;
+    console.warn(`Failed to load operations for Blox ${bloxId}:`, error);
+    return null;
   }
 }
 
